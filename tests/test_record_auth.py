@@ -13,7 +13,7 @@ from tests.conftest import SMTP_HOST, SMTP_PORT
 async def user(superuser_client: PocketBase) -> tuple[Record, str, str]:
     email = f"{uuid4().hex[:16]}@{uuid4().hex[:16]}.com"
     password = uuid4().hex
-    await superuser_client.collection("users").create(
+    record = await superuser_client.collection("users").create(
         {
             "email": email,
             "password": password,
@@ -21,7 +21,7 @@ async def user(superuser_client: PocketBase) -> tuple[Record, str, str]:
             "verified": False,
         }
     )
-    return email, password
+    return record, email, password
 
 
 @pytest.fixture
@@ -37,25 +37,24 @@ async def set_smtp_server(superuser_client: PocketBase):
     )
 
 
-async def test_login_user(client: PocketBase, user: tuple[str, str]):
+async def test_login_user(client: PocketBase, user: tuple[Record, str, str]):
     client._inners.auth.clean()
-    await client.collection("users").auth.with_password(*user)
+    await client.collection("users").auth.with_password(user[1], user[2])
 
     assert client._inners.auth._authority["collectionName"] == "users"
-    assert client._inners.auth._authority["email"] == user[0]
+    assert client._inners.auth._authority["email"] == user[1]
     assert client._inners.auth._token is not None
 
 
-async def test_auth_refresh(client: PocketBase, user: tuple[str, str]):
+async def test_auth_refresh(client: PocketBase, user: tuple[Record, str, str]):
     client._inners.auth.clean()
-    await client.collection("users").auth.with_password(*user)
+    await client.collection("users").auth.with_password(user[1], user[2])
     await client.collection("users").auth.refresh()
 
 
-async def test_delete_user(superuser_client: PocketBase, client: PocketBase, user: tuple[str, str]):
-    await client.collection("users").auth.with_password(*user)
-    user = await superuser_client.collection("users").get_first({"filter": f'email = "{user[0]}"'})
-    await superuser_client.collection("users").delete(user["id"])
+async def test_delete_user(superuser_client: PocketBase, client: PocketBase, user: tuple[Record, str, str]):
+    await client.collection("users").auth.with_password(user[1], user[2])
+    await superuser_client.collection("users").delete(user[0]["id"])
 
 
 async def test_invalid_login_exception(client: PocketBase):
@@ -72,11 +71,19 @@ async def test_list_auth_methods(client: PocketBase):
     assert isinstance(val["mfa"]["enabled"], bool)
 
 
-async def test_request_password_reset(client: PocketBase, user: tuple[str, str], smtp_server, set_smtp_server):
-    email = user[0]
+async def test_request_password_reset(client: PocketBase, user: tuple[Record, str, str], smtp_server, set_smtp_server):
+    email = user[1]
     await client.collection("users").auth.request_password_reset(email)
     await asyncio.sleep(1)
     messages = smtp_server["handler"].messages
     assert len(messages) > 0, "No password reset request received"
     email_content = messages[-1].content.decode()
     assert ">Reset password<" in email_content, "Password reset link not found in email content"
+
+
+async def test_impersonate(superuser_client: PocketBase, user: tuple[Record, str, str]):
+    imp = await superuser_client.collection("users").auth.impersonate(user[0]["id"])
+
+    assert isinstance(imp, PocketBase)
+    assert imp is not superuser_client
+    assert imp._inners.auth._authority["id"] == user[0]["id"]
