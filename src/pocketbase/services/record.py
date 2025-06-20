@@ -142,20 +142,26 @@ class RecordAuthService(Service):
 
     async def impersonate(
         self, record_id: str, duration: int | None = None, options: CommonOptions | None = None
-    ) -> AuthResult:
+    ) -> "PocketBase":
         body = {}
 
-        if duration:
+        if duration is not None:
             body["duration"] = duration
 
-        send_options: SendOptions = {"method": "POST", "body": body}  # type: ignore
+        send_options: SendOptions = {"method": "POST"}
+
+        if body:
+            send_options["body"] = body  # type: ignore
 
         if options:
             send_options.update(options)
 
         result: AuthResult = await self._send(f"/impersonate/{record_id}", send_options)  # type: ignore
-        self._in.auth.set_user(result)
-        return result
+
+        new_client = self._pb.__class__(str(self._in.client.base_url))
+        new_client._inners.auth.set_user(result)
+
+        return new_client
 
     async def request_password_reset(self, email: str, options: CommonOptions | None = None) -> None:
         send_options: SendOptions = {"method": "POST", "body": {"email": email}}
