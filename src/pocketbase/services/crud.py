@@ -34,6 +34,14 @@ class CrudService(Service, Generic[_T]):
             send_options["params"]["sort"] = options["sort"]  # type: ignore
             del send_options["sort"]  # type: ignore
 
+        if options and "expand" in options:
+            send_options["params"]["expand"] = options["expand"]  # type: ignore
+            del send_options["expand"]  # type: ignore
+
+        if options and "batch" in options:
+            send_options["params"]["batch"] = options["batch"]  # type: ignore
+            del send_options["batch"]  # type: ignore
+
         return await self._send("", send_options)  # type: ignore
 
     async def get_full_list(self, options: FullListOptions | None = None) -> list[_T]:
