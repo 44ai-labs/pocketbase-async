@@ -1,4 +1,5 @@
 import json
+import time
 from typing import TYPE_CHECKING
 
 from httpx import Request, Response
@@ -25,7 +26,12 @@ class Service:
         if self._pb.before_send != self._pb.__class__.before_send:
             request = (await self._pb.before_send(request)) or request
 
+        start_time = time.time()
         response = await self._in.client.send(request)
+        duration_ms = (time.time() - start_time) * 1000
+
+        if duration_ms > 20:
+            print(f"⚠️  Warning: Slow pocketbase request: {duration_ms:.2f}ms for {request.method} {request.url}")
 
         if self._pb.after_send != self._pb.__class__.after_send:
             response = (await self._pb.after_send(response)) or response
