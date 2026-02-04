@@ -30,7 +30,7 @@ class Service:
         response = await self._in.client.send(request)
         duration_ms = (time.time() - start_time) * 1000
 
-        if duration_ms > 100:
+        if duration_ms > 200:
             print(f"⚠️  Warning: Slow pocketbase request: {duration_ms:.2f}ms for {request.method} {request.url}")
 
         if self._pb.after_send != self._pb.__class__.after_send:
