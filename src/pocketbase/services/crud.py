@@ -42,7 +42,14 @@ class CrudService(Service, Generic[_T]):
             send_options["params"]["batch"] = options["batch"]  # type: ignore
             del send_options["batch"]  # type: ignore
 
-        return await self._send("", send_options)  # type: ignore
+        raw = await self._send("", send_options)
+        return ListResult(
+            page=raw["page"],  # type: ignore[index]
+            per_page=raw["perPage"],  # type: ignore[index]
+            total_items=raw["totalItems"],  # type: ignore[index]
+            total_pages=raw["totalPages"],  # type: ignore[index]
+            items=raw["items"],  # type: ignore[index]
+        )
 
     async def get_full_list(self, options: FullListOptions | None = None) -> list[_T]:
         list_options: ListOptions = {}
