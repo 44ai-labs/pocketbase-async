@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar, cast
 from urllib.parse import quote
 
 from pocketbase.models.dtos import ListResult
@@ -42,13 +42,13 @@ class CrudService(Service, Generic[_T]):
             send_options["params"]["batch"] = options["batch"]  # type: ignore
             del send_options["batch"]  # type: ignore
 
-        raw = await self._send("", send_options)
+        raw = cast(dict[str, Any], await self._send("", send_options))
         return ListResult(
-            page=raw["page"],  # type: ignore[index]
-            per_page=raw["perPage"],  # type: ignore[index]
-            total_items=raw["totalItems"],  # type: ignore[index]
-            total_pages=raw["totalPages"],  # type: ignore[index]
-            items=raw["items"],  # type: ignore[index]
+            page=raw["page"],
+            per_page=raw["perPage"],
+            total_items=raw["totalItems"],
+            total_pages=raw["totalPages"],
+            items=raw["items"],
         )
 
     async def get_full_list(self, options: FullListOptions | None = None) -> list[_T]:
