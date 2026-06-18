@@ -43,7 +43,7 @@ class CrudService(Service, Generic[_T]):
             del send_options["batch"]  # type: ignore
 
         if options and "skip_total" in options:
-            send_options["params"]["skipTotal"] = 1 if options["skip_total"] else 0
+            send_options["params"]["skipTotal"] = 1 if options["skip_total"] else 0  # type: ignore
             del send_options["skip_total"]  # type: ignore
 
         raw = cast(dict[str, Any], await self._send("", send_options))
