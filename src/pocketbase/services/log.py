@@ -1,3 +1,4 @@
+from typing import Any, cast
 from urllib.parse import quote
 
 from pocketbase.models.dtos import HourlyStats, ListResult, LogModel
@@ -26,7 +27,14 @@ class LogService(Service):
         if options and "sort" in options:
             send_options["params"]["sort"] = options["sort"]
 
-        return await self._send("", send_options)  # type: ignore
+        raw = cast(dict[str, Any], await self._send("", send_options))
+        return ListResult(
+            page=raw["page"],
+            per_page=raw["perPage"],
+            total_items=raw["totalItems"],
+            total_pages=raw["totalPages"],
+            items=raw["items"],
+        )
 
     async def get_one(self, record_id: str, options: CommonOptions | None = None) -> LogModel:
         send_options: SendOptions = {"method": "GET"}

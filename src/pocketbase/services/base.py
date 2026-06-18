@@ -1,3 +1,5 @@
+import json
+import time
 from typing import TYPE_CHECKING
 
 from httpx import Request, Response
@@ -24,17 +26,24 @@ class Service:
         if self._pb.before_send != self._pb.__class__.before_send:
             request = (await self._pb.before_send(request)) or request
 
+        start_time = time.time()
         response = await self._in.client.send(request)
+        duration_ms = (time.time() - start_time) * 1000
+
+        if duration_ms > 200:
+            print(f"⚠️  Warning: Slow pocketbase request: {duration_ms:.2f}ms for {request.method} {request.url}")
 
         if self._pb.after_send != self._pb.__class__.after_send:
             response = (await self._pb.after_send(response)) or response
 
         return response
 
-    async def _send(self, path: str, options: SendOptions) -> JsonType:
+    async def _send(self, path: str, options: SendOptions, expect_json: bool = True) -> JsonType | None:
         response = await self._send_raw(path, options)
         PocketBaseError.raise_for_status(response)
 
+        if not expect_json:
+            return None
         try:
             return response.json()
         except ValueError as e:
@@ -66,11 +75,16 @@ class Service:
             data, sfiles = transform(body)
             files.extend(sfiles)
 
+        # convert the casted data back to str (happens inside transform)
+        for key, value in (data or {}).items():
+            if isinstance(value, dict | list):
+                data[key] = json.dumps(value)  # type: ignore
+
         return self._in.client.build_request(
             url=self._build_url(path),
             method=options.get("method", "GET"),
             json=body,
-            data=data,
+            data=data,  # on multipart with files we have to send it via data
             files=files,  # type: ignore
             params=options.get("params"),
             headers=headers,

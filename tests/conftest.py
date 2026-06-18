@@ -7,9 +7,38 @@ from subprocess import DEVNULL, Popen
 from time import sleep
 
 import pytest
+from aiosmtpd.controller import Controller
 
 from pocketbase import PocketBase
 from tests.prep import ensure_pocketbase_executable
+
+SMTP_PORT = 8025
+SMTP_HOST = "localhost"
+
+
+class MessageHandler:
+    def __init__(self):
+        self.messages = []
+
+    async def handle_DATA(self, _server, _session, envelope):
+        self.messages.append(envelope)
+        return "250 Message accepted for delivery"
+
+
+@pytest.fixture(scope="function")
+def smtp_server():
+    handler = MessageHandler()
+    controller = Controller(handler, hostname=SMTP_HOST, port=SMTP_PORT)
+    controller.start()
+
+    try:
+        yield {
+            "host": SMTP_HOST,
+            "port": SMTP_PORT,
+            "handler": handler,
+        }
+    finally:
+        controller.stop()
 
 
 def find_free_port() -> int:

@@ -21,6 +21,7 @@ class CommonOptions(TypedDict, total=False):
 class ListOptions(CommonOptions, total=False):
     sort: str
     filter: str
+    skip_total: bool
 
 
 class FullListOptions(ListOptions, total=False):

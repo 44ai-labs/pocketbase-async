@@ -29,6 +29,8 @@ pytest-cov = "^6.0.0"
 pytest-asyncio = ">=0.21.0,<1"
 ruff = "0.11.*"
 mypy = "^1.1.1"
+aiosmtpd = "^1.4.6"
+aiosmtplib = "^4.0.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -40,7 +42,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["A", "C", "E", "F", "UP", "RUF", "I", "PL", "PTH", "TID252", "SIM"]
-ignore = ["E402", "PLR2004", "PLR0913"]
+ignore = ["E402", "PLR2004", "PLR0913", "A005"]
 fixable = ["C", "E", "F", "UP", "I", "PL", "RUF", "PTH", "PLC", "TID252", "SIM"]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
